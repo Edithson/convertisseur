@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+
+<VBox prefWidth="480.0" spacing="18.0" styleClass="glass-panel" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.moafogaus.controller.SettingsDialogController">
+    <padding>
+        <Insets bottom="24.0" left="24.0" right="24.0" top="24.0" />
+    </padding>
+
+    <!-- Header -->
+    <VBox spacing="4">
+        <Label text="Réglages Avancés" styleClass="app-title" style="-fx-font-size: 18px;" />
+        <Label fx:id="fileNameLabel" text="fichier_source.mp4" styleClass="item-meta" />
+    </VBox>
+
+    <GridPane hgap="16.0" vgap="14.0">
+        <!-- Audio Bitrate -->
+        <Label text="Bitrate Audio :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <ComboBox fx:id="bitrateCombo" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+        <!-- Sample Rate -->
+        <Label text="Échantillonnage :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <ComboBox fx:id="sampleRateCombo" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+        <!-- Channels -->
+        <Label text="Canaux Audio :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <ComboBox fx:id="channelsCombo" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+        <!-- Video Resolution -->
+        <Label text="Résolution Vidéo :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+        <ComboBox fx:id="resolutionCombo" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+        <!-- Normalization -->
+        <Label text="Normaliser le son :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+        <CheckBox fx:id="normalizeCheckBox" text="Activer (loudnorm)" styleClass="item-meta" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+        <!-- Trim Start -->
+        <Label text="Début (s) :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+        <TextField fx:id="startTimeField" promptText="ex: 0 (ou laisser vide)" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+        <!-- Trim End -->
+        <Label text="Fin (s) :" styleClass="item-title" style="-fx-font-size: 13px;" GridPane.columnIndex="0" GridPane.rowIndex="6" />
+        <TextField fx:id="endTimeField" promptText="ex: 120 (ou laisser vide)" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+    </GridPane>
+
+    <Region VBox.vgrow="ALWAYS" />
+
+    <!-- Actions -->
+    <HBox alignment="CENTER_RIGHT" spacing="12">
+        <Button onAction="#handleCancel" styleClass="btn-secondary" text="Annuler" />
+        <Button onAction="#handleSave" styleClass="btn-primary" text="Enregistrer" />
+    </HBox>
+</VBox>

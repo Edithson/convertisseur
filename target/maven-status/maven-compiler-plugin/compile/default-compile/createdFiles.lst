@@ -1,0 +1,14 @@
+com/moafogaus/controller/MediaItemRowController.class
+com/moafogaus/model/MediaType.class
+com/moafogaus/model/MediaItem$Status.class
+com/moafogaus/service/SettingsService.class
+com/moafogaus/model/ConversionSettings.class
+com/moafogaus/controller/MainController.class
+com/moafogaus/service/FFmpegService.class
+com/moafogaus/TestVerification.class
+module-info.class
+com/moafogaus/model/MediaItem.class
+com/moafogaus/App.class
+com/moafogaus/model/TargetFormat.class
+com/moafogaus/service/ConversionTask.class
+com/moafogaus/controller/SettingsDialogController.class

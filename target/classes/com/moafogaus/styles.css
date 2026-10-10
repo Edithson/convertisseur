@@ -1,0 +1,249 @@
+/* Main stylesheet for SoundWave Converter (Dark Glassmorphism Theme) */
+
+.root {
+    -fx-font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif;
+    -fx-base: #0f172a;
+    -fx-background-color: linear-gradient(to bottom right, #0f172a, #1e1b4b);
+    -fx-text-fill: #f8fafc;
+}
+
+/* Header Bar */
+.header-bar {
+    -fx-background-color: rgba(30, 41, 59, 0.65);
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 16 24 16 24;
+}
+
+.app-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.app-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #94a3b8;
+}
+
+.badge-status {
+    -fx-background-color: rgba(16, 185, 129, 0.15);
+    -fx-border-color: rgba(16, 185, 129, 0.4);
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-padding: 4 12 4 12;
+    -fx-text-fill: #34d399;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.badge-status-warning {
+    -fx-background-color: rgba(245, 158, 11, 0.15);
+    -fx-border-color: rgba(245, 158, 11, 0.4);
+    -fx-text-fill: #fbbf24;
+}
+
+.badge-status-error {
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-text-fill: #f87171;
+}
+
+/* Glass Container Cards */
+.glass-panel {
+    -fx-background-color: rgba(30, 41, 59, 0.5);
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1px;
+    -fx-padding: 16px;
+}
+
+.glass-panel-hover:hover {
+    -fx-background-color: rgba(30, 41, 59, 0.7);
+    -fx-border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Drag & Drop Zone */
+.drop-zone {
+    -fx-background-color: rgba(30, 41, 59, 0.35);
+    -fx-border-color: rgba(99, 102, 241, 0.4);
+    -fx-border-width: 2px;
+    -fx-border-style: segments(8, 8);
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 40px;
+}
+
+.drop-zone-drag-over {
+    -fx-background-color: rgba(99, 102, 241, 0.15);
+    -fx-border-color: #6366f1;
+    -fx-border-width: 2.5px;
+}
+
+.drop-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f1f5f9;
+}
+
+.drop-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #94a3b8;
+}
+
+/* Controls & Input Styling */
+.combo-box, .text-field {
+    -fx-background-color: rgba(15, 23, 42, 0.8);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 4 8 4 8;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #1e293b;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #6366f1;
+    -fx-text-fill: #ffffff;
+}
+
+.combo-box:hover, .text-field:focused {
+    -fx-border-color: #6366f1;
+}
+
+/* Buttons */
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #6366f1, #8b5cf6);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(99, 102, 241, 0.4), 10, 0, 0, 4);
+}
+
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to right, #4f46e5, #7c3aed);
+    -fx-effect: dropshadow(three-pass-box, rgba(99, 102, 241, 0.6), 14, 0, 0, 6);
+}
+
+.btn-secondary {
+    -fx-background-color: rgba(255, 255, 255, 0.07);
+    -fx-text-fill: #e2e8f0;
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-danger {
+    -fx-background-color: rgba(239, 68, 68, 0.2);
+    -fx-text-fill: #f87171;
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.btn-danger:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.35);
+}
+
+.btn-icon {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94a3b8;
+    -fx-cursor: hand;
+    -fx-padding: 6;
+    -fx-background-radius: 6;
+}
+
+.btn-icon:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: #ffffff;
+}
+
+/* Progress Bar */
+.progress-bar {
+    -fx-indeterminate-bar-length: 60px;
+    -fx-indeterminate-bar-escape: true;
+    -fx-indeterminate-bar-flip: true;
+    -fx-indeterminate-bar-animation-time: 2;
+}
+
+.progress-bar > .track {
+    -fx-background-color: rgba(15, 23, 42, 0.8);
+    -fx-background-radius: 6px;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: linear-gradient(to right, #06b6d4, #6366f1);
+    -fx-background-radius: 6px;
+    -fx-padding: 4px;
+}
+
+/* Media Item List Card */
+.item-card {
+    -fx-background-color: rgba(30, 41, 59, 0.6);
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 12px 16px 12px 16px;
+}
+
+.item-card:hover {
+    -fx-background-color: rgba(30, 41, 59, 0.85);
+    -fx-border-color: rgba(99, 102, 241, 0.3);
+}
+
+.item-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #f1f5f9;
+}
+
+.item-meta {
+    -fx-font-size: 12px;
+    -fx-text-fill: #94a3b8;
+}
+
+.format-badge {
+    -fx-background-color: rgba(99, 102, 241, 0.2);
+    -fx-text-fill: #818cf8;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 6px;
+}
+
+/* ScrollBar Styling */
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb, .scroll-bar:horizontal .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-background-radius: 10px;
+}
+
+.scroll-bar:vertical .thumb:hover, .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
