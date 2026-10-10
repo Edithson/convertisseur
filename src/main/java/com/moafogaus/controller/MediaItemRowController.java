@@ -47,13 +47,19 @@ public class MediaItemRowController {
         etaLabel.textProperty().bind(item.etaProperty());
         progressBar.progressProperty().bind(item.progressProperty());
 
-        // Target Formats combo setup
+        // Target Formats combo setup and bidirectional sync
         targetFormatCombo.getItems().setAll(TargetFormat.values());
         targetFormatCombo.setValue(item.getTargetFormat());
 
         targetFormatCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
+            if (newVal != null && item.getTargetFormat() != newVal) {
                 item.setTargetFormat(newVal);
+            }
+        });
+
+        item.targetFormatProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && targetFormatCombo.getValue() != newVal) {
+                targetFormatCombo.setValue(newVal);
             }
         });
 

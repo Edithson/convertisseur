@@ -24,6 +24,36 @@ public class ConversionTask extends Task<Void> implements EncoderProgressListene
 
     @Override
     protected Void call() throws Exception {
+        File sourceFile = item.getSourceFile();
+
+        // Verification of source file existence and permissions
+        if (sourceFile == null || !sourceFile.exists() || !sourceFile.isFile() || !sourceFile.canRead()) {
+            Platform.runLater(() -> {
+                item.setStatus(MediaItem.Status.ERROR);
+                item.setStatusMessage("Fichier source introuvable ou inaccessible");
+                item.setProgress(0.0);
+            });
+            return null;
+        }
+
+        if (sourceFile.length() == 0) {
+            Platform.runLater(() -> {
+                item.setStatus(MediaItem.Status.ERROR);
+                item.setStatusMessage("Fichier source vide (0 octet)");
+                item.setProgress(0.0);
+            });
+            return null;
+        }
+
+        if (outputDir == null || (!outputDir.exists() && !outputDir.mkdirs())) {
+            Platform.runLater(() -> {
+                item.setStatus(MediaItem.Status.ERROR);
+                item.setStatusMessage("Dossier de destination inaccessible");
+                item.setProgress(0.0);
+            });
+            return null;
+        }
+
         Platform.runLater(() -> {
             item.setStatus(MediaItem.Status.CONVERTING);
             item.setProgress(0.0);
@@ -67,6 +97,9 @@ public class ConversionTask extends Task<Void> implements EncoderProgressListene
 
         } catch (Throwable e) {
             e.printStackTrace();
+            if (targetFile != null && targetFile.exists() && targetFile.length() == 0) {
+                targetFile.delete();
+            }
             if (isCancelled()) {
                 Platform.runLater(() -> {
                     item.setStatus(MediaItem.Status.CANCELLED);
