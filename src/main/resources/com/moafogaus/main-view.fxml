@@ -19,7 +19,7 @@
             <!-- App Bar -->
             <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header-bar">
                 <VBox spacing="2">
-                    <Label styleClass="app-title" text="SoundWave Converter" />
+                    <Label styleClass="app-title" text="Convertisseur sonore GZ" />
                     <Label styleClass="app-subtitle" text="Convertisseur Audio &amp; Vidéo Haute Performance" />
                 </VBox>
                 

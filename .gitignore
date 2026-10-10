@@ -1,0 +1,27 @@
+# Maven & Build outputs
+target/
+dist/
+build/
+out/
+bin/
+dependency-reduced-pom.xml
+
+# Executable packages & AppImage build directories
+*.AppImage
+*.deb
+*.AppDir/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS & System files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp

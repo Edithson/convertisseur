@@ -4,7 +4,6 @@ import com.moafogaus.model.ConversionSettings;
 import com.moafogaus.model.MediaItem;
 import com.moafogaus.model.MediaType;
 import com.moafogaus.model.TargetFormat;
-import ws.schild.jave.Encoder;
 import ws.schild.jave.MultimediaObject;
 import ws.schild.jave.encode.AudioAttributes;
 import ws.schild.jave.encode.EncodingAttributes;
@@ -71,7 +70,24 @@ public class FFmpegService {
         EncodingAttributes attrs = new EncodingAttributes();
         TargetFormat format = item.getTargetFormat();
 
-        attrs.setOutputFormat(format.getExtension());
+        // Container format mapping for FFmpeg
+        String ext = format.getExtension().toLowerCase();
+        String containerFormat;
+        switch (ext) {
+            case "aac":
+                containerFormat = "adts";
+                break;
+            case "m4a":
+                containerFormat = "ipod";
+                break;
+            case "mkv":
+                containerFormat = "matroska";
+                break;
+            default:
+                containerFormat = ext;
+                break;
+        }
+        attrs.setOutputFormat(containerFormat);
 
         ConversionSettings settings = item.getSettings();
 
@@ -89,18 +105,21 @@ public class FFmpegService {
 
         // Audio Attributes
         AudioAttributes audio = new AudioAttributes();
+        String selectedAudioCodec;
         
         if (format.getType() == MediaType.AUDIO) {
-            String codec = switchAudioCodec(format.getDefaultCodec());
-            audio.setCodec(codec);
+            selectedAudioCodec = switchAudioCodec(format);
         } else {
             // Video format audio stream
             if (format == TargetFormat.WEBM) {
-                audio.setCodec("opus");
+                selectedAudioCodec = "libopus";
+            } else if (format == TargetFormat.AVI) {
+                selectedAudioCodec = "mp3";
             } else {
-                audio.setCodec("aac");
+                selectedAudioCodec = "aac";
             }
         }
+        audio.setCodec(selectedAudioCodec);
 
         if (settings.getAudioBitrate() != null && !settings.getAudioBitrate().equalsIgnoreCase("Auto")) {
             try {
@@ -110,7 +129,10 @@ public class FFmpegService {
             } catch (Exception ignored) {}
         }
 
-        if (settings.getAudioSampleRate() != null && !settings.getAudioSampleRate().equalsIgnoreCase("Auto")) {
+        // OPUS / libopus requires 48000 Hz sampling rate
+        if ("libopus".equalsIgnoreCase(selectedAudioCodec) || format == TargetFormat.OPUS || format == TargetFormat.WEBM) {
+            audio.setSamplingRate(48000);
+        } else if (settings.getAudioSampleRate() != null && !settings.getAudioSampleRate().equalsIgnoreCase("Auto")) {
             try {
                 int sr = Integer.parseInt(settings.getAudioSampleRate());
                 audio.setSamplingRate(sr);
@@ -146,12 +168,24 @@ public class FFmpegService {
         return attrs;
     }
 
-    private String switchAudioCodec(String rawCodec) {
-        if ("libmp3lame".equalsIgnoreCase(rawCodec)) return "mp3";
-        if ("libvorbis".equalsIgnoreCase(rawCodec)) return "vorbis";
-        if ("libopus".equalsIgnoreCase(rawCodec)) return "opus";
-        if ("pcm_s16le".equalsIgnoreCase(rawCodec)) return "pcm_s16le";
-        return "aac";
+    private String switchAudioCodec(TargetFormat format) {
+        switch (format) {
+            case MP3:
+                return "libmp3lame";
+            case OGG:
+                return "libvorbis";
+            case OPUS:
+                return "libopus";
+            case WAV:
+                return "pcm_s16le";
+            case FLAC:
+                return "flac";
+            case AAC:
+            case M4A:
+                return "aac";
+            default:
+                return "aac";
+        }
     }
 
     private String switchVideoCodec(String rawCodec) {

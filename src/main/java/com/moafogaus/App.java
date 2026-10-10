@@ -22,7 +22,7 @@ public class App extends Application {
 
         scene = new Scene(root, 980, 700);
         
-        stage.setTitle("SoundWave Converter - Audio & Vidéo");
+        stage.setTitle("Convertisseur sonore GZ");
         stage.setMinWidth(900);
         stage.setMinHeight(650);
         stage.setScene(scene);
