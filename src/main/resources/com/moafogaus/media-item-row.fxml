@@ -11,26 +11,28 @@
 
 <HBox alignment="CENTER_LEFT" spacing="14" styleClass="item-card" xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.moafogaus.controller.MediaItemRowController">
     <!-- Format Badge / Icon -->
-    <VBox alignment="CENTER" prefWidth="65" spacing="2">
+    <VBox alignment="CENTER" prefWidth="70" spacing="3">
         <Label fx:id="inputFormatBadge" styleClass="format-badge" text="MP4" />
         <Label fx:id="sizeLabel" styleClass="item-meta" text="12.4 MB" />
     </VBox>
 
-    <!-- File Information -->
-    <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="4">
+    <!-- File Information & Progress -->
+    <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="6">
         <HBox alignment="CENTER_LEFT" spacing="8">
             <Label fx:id="titleLabel" styleClass="item-title" text="video_vacances_2026.mp4" />
             <Label fx:id="durationLabel" styleClass="item-meta" text="• 03:45" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="statusBadgeLabel" styleClass="badge-status" style="-fx-font-size: 10px; -fx-padding: 2 8 2 8;" text="En attente" />
         </HBox>
         
         <!-- Progress bar and status info -->
-        <VBox spacing="3" HBox.hgrow="ALWAYS">
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT">
-                <Label fx:id="statusMessageLabel" styleClass="item-meta" text="Prêt" />
+                <Label fx:id="statusMessageLabel" styleClass="item-meta" style="-fx-text-fill: #e2e8f0; -fx-font-weight: bold;" text="Prêt" />
                 <Region HBox.hgrow="ALWAYS" />
                 <Label fx:id="etaLabel" styleClass="item-meta" text="" />
             </HBox>
-            <ProgressBar fx:id="progressBar" maxWidth="Infinity" progress="0.0" prefHeight="6" />
+            <ProgressBar fx:id="progressBar" maxWidth="Infinity" progress="0.0" prefHeight="8" />
         </VBox>
     </VBox>
 

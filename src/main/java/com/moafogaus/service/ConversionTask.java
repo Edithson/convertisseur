@@ -3,19 +3,19 @@ package com.moafogaus.service;
 import com.moafogaus.model.MediaItem;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import ws.schild.jave.Encoder;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.encode.EncodingAttributes;
+import ws.schild.jave.info.MultimediaInfo;
+import ws.schild.jave.progress.EncoderProgressListener;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-public class ConversionTask extends Task<Void> {
+public class ConversionTask extends Task<Void> implements EncoderProgressListener {
 
     private final MediaItem item;
     private final File outputDir;
-    private Process process;
+    private long startTimeMs;
 
     public ConversionTask(MediaItem item, File outputDir) {
         this.item = item;
@@ -30,7 +30,7 @@ public class ConversionTask extends Task<Void> {
             item.setStatusMessage("Démarrage...");
         });
 
-        // First, ensure total duration is available
+        // Ensure total duration
         double totalDuration = item.getDurationSeconds();
         if (totalDuration <= 0) {
             totalDuration = FFmpegService.getInstance().extractDurationSeconds(item.getSourceFile());
@@ -38,88 +38,88 @@ public class ConversionTask extends Task<Void> {
             Platform.runLater(() -> item.setDurationSeconds(extractedDur));
         }
 
-        List<String> command = FFmpegService.getInstance().buildFFmpegCommand(item, outputDir);
+        File targetFile = FFmpegService.getInstance().determineOutputFile(item, outputDir);
+        EncodingAttributes attrs = FFmpegService.getInstance().buildEncodingAttributes(item);
 
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true); // Merge stderr into stdout for easy line-by-line reading
+        MultimediaObject multimediaObject = new MultimediaObject(item.getSourceFile());
+        Encoder encoder = new Encoder();
 
-        process = pb.start();
+        startTimeMs = System.currentTimeMillis();
 
-        long startTimeMs = System.currentTimeMillis();
-        Pattern timePattern = Pattern.compile("time=\\s*(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)");
+        try {
+            encoder.encode(multimediaObject, targetFile, attrs, this);
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (isCancelled()) {
-                    process.destroyForcibly();
-                    Platform.runLater(() -> {
-                        item.setStatus(MediaItem.Status.CANCELLED);
-                        item.setStatusMessage("Annulé par l'utilisateur");
-                        item.setProgress(0.0);
-                    });
-                    return null;
-                }
-
-                Matcher matcher = timePattern.matcher(line);
-                if (matcher.find() && totalDuration > 0) {
-                    int hrs = Integer.parseInt(matcher.group(1));
-                    int mins = Integer.parseInt(matcher.group(2));
-                    double secs = Double.parseDouble(matcher.group(3));
-                    double currentSeconds = hrs * 3600 + mins * 60 + secs;
-
-                    double progressVal = Math.min(1.0, Math.max(0.0, currentSeconds / totalDuration));
-                    
-                    // Estimate ETA
-                    long elapsedMs = System.currentTimeMillis() - startTimeMs;
-                    long estimatedTotalMs = (progressVal > 0) ? (long) (elapsedMs / progressVal) : 0;
-                    long remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
-                    long remainingSecs = remainingMs / 1000;
-
-                    String etaStr = MediaItem.formatDuration(remainingSecs);
-
-                    Platform.runLater(() -> {
-                        item.setProgress(progressVal);
-                        item.setEta(etaStr);
-                        item.setStatusMessage(String.format("%.0f%%", progressVal * 100));
-                    });
-                }
+            if (isCancelled()) {
+                Platform.runLater(() -> {
+                    item.setStatus(MediaItem.Status.CANCELLED);
+                    item.setStatusMessage("Annulé par l'utilisateur");
+                    item.setProgress(0.0);
+                });
+                return null;
             }
-        }
 
-        int exitCode = process.waitFor();
-
-        if (isCancelled()) {
-            Platform.runLater(() -> {
-                item.setStatus(MediaItem.Status.CANCELLED);
-                item.setStatusMessage("Annulé");
-                item.setProgress(0.0);
-            });
-            return null;
-        }
-
-        if (exitCode == 0) {
             Platform.runLater(() -> {
                 item.setProgress(1.0);
                 item.setStatus(MediaItem.Status.COMPLETED);
                 item.setStatusMessage("Conversion terminée");
                 item.setEta("00:00");
             });
-        } else {
-            Platform.runLater(() -> {
-                item.setStatus(MediaItem.Status.ERROR);
-                item.setStatusMessage("Erreur FFmpeg (code " + exitCode + ")");
-            });
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            if (isCancelled()) {
+                Platform.runLater(() -> {
+                    item.setStatus(MediaItem.Status.CANCELLED);
+                    item.setStatusMessage("Annulé");
+                });
+            } else {
+                String errorMsg = (e.getMessage() != null && !e.getMessage().trim().isEmpty())
+                    ? e.getMessage()
+                    : e.getClass().getSimpleName();
+                Platform.runLater(() -> {
+                    item.setStatus(MediaItem.Status.ERROR);
+                    item.setStatusMessage("Erreur : " + errorMsg);
+                });
+            }
         }
 
         return null;
     }
 
+    // JAVE2 EncoderProgressListener implementation
+    @Override
+    public void sourceInfo(MultimediaInfo info) {
+        if (info != null && info.getDuration() > 0) {
+            double durSec = info.getDuration() / 1000.0;
+            Platform.runLater(() -> item.setDurationSeconds(durSec));
+        }
+    }
+
+    @Override
+    public void progress(int permil) {
+        double progressVal = Math.min(1.0, Math.max(0.0, permil / 1000.0));
+
+        long elapsedMs = System.currentTimeMillis() - startTimeMs;
+        long estimatedTotalMs = (progressVal > 0) ? (long) (elapsedMs / progressVal) : 0;
+        long remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
+        long remainingSecs = remainingMs / 1000;
+
+        String etaStr = MediaItem.formatDuration(remainingSecs);
+
+        Platform.runLater(() -> {
+            item.setProgress(progressVal);
+            item.setEta(etaStr);
+            item.setStatusMessage(String.format("%.0f%%", progressVal * 100));
+        });
+    }
+
+    @Override
+    public void message(String message) {
+        // Logs d'exécution
+    }
+
     @Override
     protected void cancelled() {
-        if (process != null && process.isAlive()) {
-            process.destroyForcibly();
-        }
         Platform.runLater(() -> {
             item.setStatus(MediaItem.Status.CANCELLED);
             item.setStatusMessage("Annulé");

@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -11,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.StackPane?>
 
-<BorderPane prefHeight="700.0" prefWidth="960.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.moafogaus.controller.MainController">
+<BorderPane prefHeight="720.0" prefWidth="980.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.moafogaus.controller.MainController">
     <!-- Header -->
     <top>
         <VBox spacing="0">
@@ -30,25 +31,36 @@
                 <!-- Output Folder Selection -->
                 <HBox alignment="CENTER" spacing="8" styleClass="glass-panel" style="-fx-padding: 6 12 6 12;">
                     <Label text="Destination :" styleClass="item-meta" />
-                    <Label fx:id="outputFolderLabel" maxWidth="200.0" styleClass="item-title" style="-fx-font-size: 12px;" text="~/ConvertedMedia" />
+                    <Label fx:id="outputFolderLabel" maxWidth="180.0" styleClass="item-title" style="-fx-font-size: 12px;" text="~/ConvertedMedia" />
                     <Button onAction="#handleChooseOutputFolder" styleClass="btn-secondary" text="Changer..." />
                     <Button onAction="#handleOpenOutputFolder" styleClass="btn-icon" text="📁" textFill="#e2e8f0" />
                 </HBox>
             </HBox>
 
-            <!-- Action Bar / Global Settings -->
-            <HBox alignment="CENTER_LEFT" spacing="16" style="-fx-padding: 12 24 12 24; -fx-background-color: rgba(15, 23, 42, 0.4);">
-                <Button onAction="#handleAddFiles" styleClass="btn-primary" style="-fx-font-size: 13px; -fx-padding: 8 16 8 16;" text="+ Ajouter des fichiers" />
+            <!-- Action Bar / File Addition & Global Format -->
+            <HBox alignment="CENTER_LEFT" spacing="12" style="-fx-padding: 12 24 12 24; -fx-background-color: rgba(15, 23, 42, 0.4);">
+                <Button onAction="#handleAddFiles" styleClass="btn-primary" style="-fx-font-size: 13px; -fx-padding: 8 16 8 16;" text="+ Parcourir des fichiers..." />
+                <Button onAction="#handleOpenCustomFileBrowser" styleClass="btn-secondary" style="-fx-font-size: 13px; -fx-padding: 8 14 8 14;" text="📂 Saisir un Chemin / Explorateur..." />
 
                 <Region HBox.hgrow="ALWAYS" />
 
                 <!-- Global Format Selector -->
                 <HBox alignment="CENTER" spacing="8">
                     <Label styleClass="item-title" style="-fx-font-size: 13px;" text="Format global :" />
-                    <ComboBox fx:id="globalFormatCombo" prefWidth="160.0" />
+                    <ComboBox fx:id="globalFormatCombo" prefWidth="150.0" />
                     <Button onAction="#handleApplyGlobalFormat" styleClass="btn-secondary" text="Appliquer à tous" />
                 </HBox>
             </HBox>
+
+            <!-- Global Progress Card (Active during conversions) -->
+            <VBox fx:id="globalProgressCard" managed="false" spacing="6" styleClass="glass-panel" visible="false" style="-fx-margin: 10 24 0 24; -fx-padding: 12 16 12 16; -fx-border-color: rgba(99, 102, 241, 0.4);">
+                <HBox alignment="CENTER_LEFT">
+                    <Label fx:id="globalProgressTitle" styleClass="item-title" text="Conversion Globale en cours : 0/0 fichiers (0%)" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="globalEtaLabel" styleClass="item-meta" text="ETA Global : --:--" />
+                </HBox>
+                <ProgressBar fx:id="globalProgressBar" maxWidth="Infinity" prefHeight="10.0" progress="0.0" />
+            </VBox>
         </VBox>
     </top>
 
@@ -60,9 +72,12 @@
                 <Label style="-fx-font-size: 48px;" text="🎵" />
                 <VBox alignment="CENTER" spacing="4">
                     <Label styleClass="drop-title" text="Glissez-déposez vos fichiers audio ou vidéo ici" />
-                    <Label styleClass="drop-subtitle" text="Formats supportés : MP4, MKV, AVI, WEBM, MOV, MP3, WAV, OGG, OPUS, AAC, FLAC, M4A" />
+                    <Label styleClass="drop-subtitle" text="Ou cliquez sur les boutons ci-dessus pour importer depuis un dossier / chemin direct" />
                 </VBox>
-                <Button onAction="#handleAddFiles" styleClass="btn-secondary" text="Sélectionner des fichiers..." />
+                <HBox alignment="CENTER" spacing="10">
+                    <Button onAction="#handleAddFiles" styleClass="btn-secondary" text="Parcourir des fichiers..." />
+                    <Button onAction="#handleOpenCustomFileBrowser" styleClass="btn-primary" text="Saisir un chemin de dossier..." />
+                </HBox>
             </VBox>
 
             <!-- Items Queue List (when items present) -->

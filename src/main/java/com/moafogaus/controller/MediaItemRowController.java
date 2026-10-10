@@ -7,7 +7,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.stage.Stage;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -20,6 +19,7 @@ public class MediaItemRowController {
     @FXML private Label sizeLabel;
     @FXML private Label titleLabel;
     @FXML private Label durationLabel;
+    @FXML private Label statusBadgeLabel;
     @FXML private Label statusMessageLabel;
     @FXML private Label etaLabel;
     @FXML private ProgressBar progressBar;
@@ -57,12 +57,34 @@ public class MediaItemRowController {
             }
         });
 
-        // Status listener for completed open output button visibility
-        item.statusProperty().addListener((obs, oldVal, newVal) -> {
-            boolean isCompleted = (newVal == MediaItem.Status.COMPLETED);
-            openOutputBtn.setVisible(isCompleted);
-            openOutputBtn.setManaged(isCompleted);
-        });
+        // Status listener for completed open output button visibility and badge styling
+        item.statusProperty().addListener((obs, oldVal, newVal) -> updateStatusBadge(newVal));
+        updateStatusBadge(item.getStatus());
+    }
+
+    private void updateStatusBadge(MediaItem.Status status) {
+        if (status == null) return;
+
+        statusBadgeLabel.setText(status.getLabel());
+        statusBadgeLabel.getStyleClass().removeAll("badge-status", "badge-status-warning", "badge-status-error");
+
+        switch (status) {
+            case CONVERTING:
+            case COMPLETED:
+                statusBadgeLabel.getStyleClass().add("badge-status");
+                break;
+            case PENDING:
+            case CANCELLED:
+                statusBadgeLabel.getStyleClass().add("badge-status-warning");
+                break;
+            case ERROR:
+                statusBadgeLabel.getStyleClass().add("badge-status-error");
+                break;
+        }
+
+        boolean isCompleted = (status == MediaItem.Status.COMPLETED);
+        openOutputBtn.setVisible(isCompleted);
+        openOutputBtn.setManaged(isCompleted);
     }
 
     @FXML

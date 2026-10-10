@@ -4,22 +4,21 @@ import com.moafogaus.model.ConversionSettings;
 import com.moafogaus.model.MediaItem;
 import com.moafogaus.model.MediaType;
 import com.moafogaus.model.TargetFormat;
+import ws.schild.jave.Encoder;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.encode.AudioAttributes;
+import ws.schild.jave.encode.EncodingAttributes;
+import ws.schild.jave.encode.VideoAttributes;
+import ws.schild.jave.info.MultimediaInfo;
+import ws.schild.jave.info.VideoSize;
+import ws.schild.jave.process.ffmpeg.DefaultFFMPEGLocator;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FFmpegService {
 
     private static FFmpegService instance;
-
-    private String ffmpegPath = "ffmpeg";
-    private String ffprobePath = "ffprobe";
-    private Boolean ffmpegAvailable = null;
+    private Boolean javeAvailable = null;
 
     private FFmpegService() {}
 
@@ -31,161 +30,149 @@ public class FFmpegService {
     }
 
     public boolean isFFmpegAvailable() {
-        if (ffmpegAvailable != null) {
-            return ffmpegAvailable;
+        if (javeAvailable != null) {
+            return javeAvailable;
         }
         try {
-            Process process = new ProcessBuilder(ffmpegPath, "-version").start();
-            int exitCode = process.waitFor();
-            ffmpegAvailable = (exitCode == 0);
-        } catch (Exception e) {
-            ffmpegAvailable = false;
+            DefaultFFMPEGLocator locator = new DefaultFFMPEGLocator();
+            String path = locator.getExecutablePath();
+            File f = new File(path);
+            javeAvailable = (f.exists() && f.canExecute()) || isSystemFFmpegAvailable();
+        } catch (Throwable e) {
+            javeAvailable = isSystemFFmpegAvailable();
         }
-        return ffmpegAvailable;
+        return javeAvailable;
+    }
+
+    private boolean isSystemFFmpegAvailable() {
+        try {
+            Process p = new ProcessBuilder("ffmpeg", "-version").start();
+            return p.waitFor() == 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public double extractDurationSeconds(File mediaFile) {
         if (mediaFile == null || !mediaFile.exists()) return 0;
 
-        // Try ffprobe first
         try {
-            List<String> cmd = List.of(
-                ffprobePath,
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
-                mediaFile.getAbsolutePath()
-            );
-            Process process = new ProcessBuilder(cmd).start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line = reader.readLine();
-                if (line != null && !line.trim().isEmpty()) {
-                    return Double.parseDouble(line.trim());
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // Fallback to parsing ffmpeg -i output
-        try {
-            List<String> cmd = List.of(ffmpegPath, "-i", mediaFile.getAbsolutePath());
-            Process process = new ProcessBuilder(cmd).start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                String line;
-                Pattern pattern = Pattern.compile("Duration:\\s*(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)");
-                while ((line = reader.readLine()) != null) {
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.find()) {
-                        int hours = Integer.parseInt(matcher.group(1));
-                        int minutes = Integer.parseInt(matcher.group(2));
-                        double seconds = Double.parseDouble(matcher.group(3));
-                        return hours * 3600 + minutes * 60 + seconds;
-                    }
-                }
+            MultimediaObject multimediaObject = new MultimediaObject(mediaFile);
+            MultimediaInfo info = multimediaObject.getInfo();
+            if (info != null && info.getDuration() > 0) {
+                return info.getDuration() / 1000.0;
             }
         } catch (Exception ignored) {}
 
         return 0;
     }
 
-    public List<String> buildFFmpegCommand(MediaItem item, File outputDir) {
-        List<String> cmd = new ArrayList<>();
-        cmd.add(ffmpegPath);
-        cmd.add("-y"); // Overwrite output files without asking
+    public EncodingAttributes buildEncodingAttributes(MediaItem item) {
+        EncodingAttributes attrs = new EncodingAttributes();
+        TargetFormat format = item.getTargetFormat();
+
+        attrs.setOutputFormat(format.getExtension());
 
         ConversionSettings settings = item.getSettings();
 
-        // Trim start time if defined
+        // Trim start & duration
         if (settings.getStartTime() != null && settings.getStartTime() > 0) {
-            cmd.add("-ss");
-            cmd.add(String.format(java.util.Locale.US, "%.2f", settings.getStartTime()));
+            attrs.setOffset(settings.getStartTime().floatValue());
         }
-
-        // Input file
-        cmd.add("-i");
-        cmd.add(item.getSourceFile().getAbsolutePath());
-
-        // Trim end/duration if defined
         if (settings.getEndTime() != null && settings.getEndTime() > 0) {
-            cmd.add("-to");
-            cmd.add(String.format(java.util.Locale.US, "%.2f", settings.getEndTime()));
+            float start = (settings.getStartTime() != null) ? settings.getStartTime().floatValue() : 0f;
+            float duration = (float) (settings.getEndTime() - start);
+            if (duration > 0) {
+                attrs.setDuration(duration);
+            }
         }
 
-        TargetFormat format = item.getTargetFormat();
-
+        // Audio Attributes
+        AudioAttributes audio = new AudioAttributes();
+        
         if (format.getType() == MediaType.AUDIO) {
-            // Audio extraction / audio conversion
-            cmd.add("-vn"); // Disable video stream
-            cmd.add("-c:a");
-            cmd.add(format.getDefaultCodec());
-
-            if (settings.getAudioBitrate() != null && !settings.getAudioBitrate().equalsIgnoreCase("Auto")) {
-                cmd.add("-b:a");
-                cmd.add(settings.getAudioBitrate());
-            }
-
-            if (settings.getAudioSampleRate() != null && !settings.getAudioSampleRate().equalsIgnoreCase("Auto")) {
-                cmd.add("-ar");
-                cmd.add(settings.getAudioSampleRate());
-            }
-
-            if (settings.getAudioChannels() > 0) {
-                cmd.add("-ac");
-                cmd.add(String.valueOf(settings.getAudioChannels()));
-            }
-
-            if (settings.isNormalizeAudio()) {
-                cmd.add("-af");
-                cmd.add("loudnorm");
-            }
+            String codec = switchAudioCodec(format.getDefaultCodec());
+            audio.setCodec(codec);
         } else {
-            // Video conversion
-            cmd.add("-c:v");
-            cmd.add(format.getDefaultCodec());
+            // Video format audio stream
+            if (format == TargetFormat.WEBM) {
+                audio.setCodec("opus");
+            } else {
+                audio.setCodec("aac");
+            }
+        }
+
+        if (settings.getAudioBitrate() != null && !settings.getAudioBitrate().equalsIgnoreCase("Auto")) {
+            try {
+                String bStr = settings.getAudioBitrate().toLowerCase().replace("k", "");
+                int bitrateBps = Integer.parseInt(bStr) * 1000;
+                audio.setBitRate(bitrateBps);
+            } catch (Exception ignored) {}
+        }
+
+        if (settings.getAudioSampleRate() != null && !settings.getAudioSampleRate().equalsIgnoreCase("Auto")) {
+            try {
+                int sr = Integer.parseInt(settings.getAudioSampleRate());
+                audio.setSamplingRate(sr);
+            } catch (Exception ignored) {}
+        }
+
+        if (settings.getAudioChannels() > 0) {
+            audio.setChannels(settings.getAudioChannels());
+        }
+
+        attrs.setAudioAttributes(audio);
+
+        // Video Attributes (if format is VIDEO)
+        if (format.getType() == MediaType.VIDEO) {
+            VideoAttributes video = new VideoAttributes();
+            String vCodec = switchVideoCodec(format.getDefaultCodec());
+
+            video.setCodec(vCodec);
 
             if (settings.getVideoResolution() != null && !settings.getVideoResolution().equalsIgnoreCase("Source")) {
-                String scaleArg = null;
                 String res = settings.getVideoResolution();
                 if ("1080p".equals(res)) {
-                    scaleArg = "scale=1920:1080:force_original_aspect_ratio=decrease";
+                    video.setSize(new VideoSize(1920, 1080));
                 } else if ("720p".equals(res)) {
-                    scaleArg = "scale=1280:720:force_original_aspect_ratio=decrease";
+                    video.setSize(new VideoSize(1280, 720));
                 } else if ("480p".equals(res)) {
-                    scaleArg = "scale=854:480:force_original_aspect_ratio=decrease";
-                }
-                if (scaleArg != null) {
-                    cmd.add("-vf");
-                    cmd.add(scaleArg);
+                    video.setSize(new VideoSize(854, 480));
                 }
             }
-
-            // Audio codec for video container
-            cmd.add("-c:a");
-            if (format == TargetFormat.WEBM) {
-                cmd.add("libopus");
-            } else {
-                cmd.add("aac");
-            }
-            if (settings.getAudioBitrate() != null && !settings.getAudioBitrate().equalsIgnoreCase("Auto")) {
-                cmd.add("-b:a");
-                cmd.add(settings.getAudioBitrate());
-            }
+            attrs.setVideoAttributes(video);
         }
 
-        // Output File
+        return attrs;
+    }
+
+    private String switchAudioCodec(String rawCodec) {
+        if ("libmp3lame".equalsIgnoreCase(rawCodec)) return "mp3";
+        if ("libvorbis".equalsIgnoreCase(rawCodec)) return "vorbis";
+        if ("libopus".equalsIgnoreCase(rawCodec)) return "opus";
+        if ("pcm_s16le".equalsIgnoreCase(rawCodec)) return "pcm_s16le";
+        return "aac";
+    }
+
+    private String switchVideoCodec(String rawCodec) {
+        if ("libx264".equalsIgnoreCase(rawCodec)) return "h264";
+        if ("libvpx-vp9".equalsIgnoreCase(rawCodec)) return "vp9";
+        if ("mpeg4".equalsIgnoreCase(rawCodec)) return "mpeg4";
+        return "h264";
+    }
+
+    public File determineOutputFile(MediaItem item, File outputDir) {
         String originalBaseName = getBaseName(item.getSourceFile().getName());
-        String outFileName = originalBaseName + "." + format.getExtension();
+        String outFileName = originalBaseName + "." + item.getTargetFormat().getExtension();
         File outputFile = new File(outputDir, outFileName);
 
-        // If output file equals input file, append "_converted"
         if (outputFile.getAbsolutePath().equals(item.getSourceFile().getAbsolutePath())) {
-            outFileName = originalBaseName + "_converted." + format.getExtension();
+            outFileName = originalBaseName + "_converted." + item.getTargetFormat().getExtension();
             outputFile = new File(outputDir, outFileName);
         }
 
         item.setOutputPath(outputFile.getAbsolutePath());
-        cmd.add(outputFile.getAbsolutePath());
-
-        return cmd;
+        return outputFile;
     }
 
     private String getBaseName(String filename) {

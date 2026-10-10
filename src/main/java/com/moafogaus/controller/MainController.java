@@ -6,6 +6,8 @@ import com.moafogaus.service.ConversionTask;
 import com.moafogaus.service.FFmpegService;
 import com.moafogaus.service.SettingsService;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -37,6 +39,11 @@ public class MainController {
     @FXML private Label outputFolderLabel;
     @FXML private ComboBox<TargetFormat> globalFormatCombo;
 
+    @FXML private VBox globalProgressCard;
+    @FXML private Label globalProgressTitle;
+    @FXML private Label globalEtaLabel;
+    @FXML private ProgressBar globalProgressBar;
+
     @FXML private VBox dropZone;
     @FXML private ScrollPane queueScrollPane;
     @FXML private VBox queueContainer;
@@ -49,6 +56,7 @@ public class MainController {
     private final ObservableList<MediaItem> mediaItems = FXCollections.observableArrayList();
     private final List<ConversionTask> activeTasks = new ArrayList<>();
     private ExecutorService executorService;
+    private ChangeListener<Number> progressChangeListener;
 
     @FXML
     public void initialize() {
@@ -70,10 +78,26 @@ public class MainController {
         globalFormatCombo.getItems().setAll(TargetFormat.values());
         globalFormatCombo.setValue(TargetFormat.MP3);
 
+        // Progress change listener for global progress bar
+        progressChangeListener = (obs, oldVal, newVal) -> updateGlobalProgress();
+
         // List change listener
         mediaItems.addListener((ListChangeListener<MediaItem>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    for (MediaItem item : c.getAddedSubList()) {
+                        item.progressProperty().addListener(progressChangeListener);
+                    }
+                }
+                if (c.wasRemoved()) {
+                    for (MediaItem item : c.getRemoved()) {
+                        item.progressProperty().removeListener(progressChangeListener);
+                    }
+                }
+            }
             updateQueueVisibility();
             updateSummary();
+            updateGlobalProgress();
         });
 
         updateQueueVisibility();
@@ -97,21 +121,86 @@ public class MainController {
         }
     }
 
+    private synchronized void updateGlobalProgress() {
+        if (mediaItems.isEmpty()) {
+            globalProgressCard.setVisible(false);
+            globalProgressCard.setManaged(false);
+            return;
+        }
+
+        int total = mediaItems.size();
+        long completedCount = mediaItems.stream().filter(i -> i.getStatus() == MediaItem.Status.COMPLETED).count();
+        double sumProgress = mediaItems.stream().mapToDouble(MediaItem::getProgress).sum();
+        double avgProgress = sumProgress / total;
+
+        boolean anyConverting = mediaItems.stream().anyMatch(i -> i.getStatus() == MediaItem.Status.CONVERTING);
+
+        if (anyConverting || (completedCount > 0 && completedCount < total)) {
+            globalProgressCard.setVisible(true);
+            globalProgressCard.setManaged(true);
+            globalProgressBar.setProgress(avgProgress);
+
+            int pct = (int) (avgProgress * 100);
+            globalProgressTitle.setText(String.format("Conversion Globale : %d / %d fichiers terminés (%d%%)", completedCount, total, pct));
+
+            // Estimate overall ETA
+            String activeEta = mediaItems.stream()
+                .filter(i -> i.getStatus() == MediaItem.Status.CONVERTING)
+                .map(MediaItem::getEta)
+                .findFirst().orElse("--:--");
+
+            globalEtaLabel.setText("ETA estimé : " + activeEta);
+        } else if (completedCount == total && total > 0) {
+            globalProgressCard.setVisible(true);
+            globalProgressCard.setManaged(true);
+            globalProgressBar.setProgress(1.0);
+            globalProgressTitle.setText("✓ Toutes les conversions sont terminées ! (" + total + "/" + total + ")");
+            globalEtaLabel.setText("Terminé");
+        } else {
+            globalProgressCard.setVisible(false);
+            globalProgressCard.setManaged(false);
+        }
+    }
+
     @FXML
     private void handleAddFiles() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Sélectionner des fichiers audio ou vidéo");
+        fileChooser.setTitle("Sélectionner des fichiers audio ou vidéo (Sélection multiple disponible)");
         fileChooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("Tous les fichiers multimédia", "*.mp4", "*.mkv", "*.avi", "*.webm", "*.mov", "*.mp3", "*.wav", "*.ogg", "*.opus", "*.aac", "*.flac", "*.m4a", "*.wma"),
             new FileChooser.ExtensionFilter("Fichiers Vidéo", "*.mp4", "*.mkv", "*.avi", "*.webm", "*.mov"),
             new FileChooser.ExtensionFilter("Fichiers Audio", "*.mp3", "*.wav", "*.ogg", "*.opus", "*.aac", "*.flac", "*.m4a")
         );
 
-        Stage stage = (Stage) rootStackPaneGetStage();
+        Stage stage = rootStackPaneGetStage();
         List<File> selectedFiles = fileChooser.showOpenMultipleDialog(stage);
 
         if (selectedFiles != null && !selectedFiles.isEmpty()) {
             addFilesToQueue(selectedFiles);
+        }
+    }
+
+    @FXML
+    private void handleOpenCustomFileBrowser() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/moafogaus/file-browser-view.fxml"));
+            Parent root = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Explorateur Multimédia avec Barre d'Adresse");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(rootStackPaneGetStage());
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+
+            FileBrowserDialogController controller = loader.getController();
+            File defaultDir = SettingsService.getInstance().getOutputDir();
+            controller.init(defaultDir, dialogStage, this::addFilesToQueue);
+
+            dialogStage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -245,6 +334,9 @@ public class MainController {
         cancelAllBtn.setManaged(true);
         convertAllBtn.setDisable(true);
 
+        globalProgressCard.setVisible(true);
+        globalProgressCard.setManaged(true);
+
         for (MediaItem item : mediaItems) {
             if (item.getStatus() != MediaItem.Status.COMPLETED) {
                 ConversionTask task = new ConversionTask(item, outputDir);
@@ -263,6 +355,7 @@ public class MainController {
                 cancelAllBtn.setVisible(false);
                 cancelAllBtn.setManaged(false);
                 convertAllBtn.setDisable(false);
+                updateGlobalProgress();
             });
         }).start();
     }
@@ -278,6 +371,7 @@ public class MainController {
         cancelAllBtn.setVisible(false);
         cancelAllBtn.setManaged(false);
         convertAllBtn.setDisable(false);
+        updateGlobalProgress();
     }
 
     @FXML
@@ -285,6 +379,7 @@ public class MainController {
         handleCancelAll();
         mediaItems.clear();
         queueContainer.getChildren().clear();
+        updateGlobalProgress();
     }
 
     @FXML
